@@ -26,6 +26,8 @@ func CORS(origins []string) fiber.Handler {
 		c.Set("Vary", "Origin")
 		if len(origins) == 0 && origin != "" {
 			c.Set("Access-Control-Allow-Origin", origin)
+		} else if isDesktopOrigin(origin) {
+			c.Set("Access-Control-Allow-Origin", origin)
 		} else if len(origins) > 0 {
 			for _, o := range origins {
 				if o == origin {
@@ -43,4 +45,17 @@ func CORS(origins []string) fiber.Handler {
 		}
 		return c.Next()
 	}
+}
+
+// isDesktopOrigin: the Strafe desktop app's webview presents one of these as its Origin
+// (a custom scheme on macOS and Linux, a loopback-style host on Windows). No web page can
+// carry one, so they are admitted whatever CORS_ORIGINS says - the app has to fetch
+// encrypted attachments from every instance its accounts are on. Mirrors equinox's
+// internal/weborigin.
+func isDesktopOrigin(origin string) bool {
+	switch origin {
+	case "tauri://localhost", "http://tauri.localhost", "https://tauri.localhost":
+		return true
+	}
+	return false
 }
